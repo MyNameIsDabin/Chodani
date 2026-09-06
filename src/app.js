@@ -166,13 +166,34 @@ function step(delta) {
   goToFrame((state.pending ?? state.cursor) + delta);
 }
 
+/**
+ * Bumped on every intent change so a `play()` promise that settles late cannot
+ * report on a decision the user has already moved past.
+ */
+let playIntent = 0;
+
 function setPlaying(on) {
   if (!loaded()) return;
+  const intent = ++playIntent;
   state.playing = on;
   el.btnPlay.classList.toggle('is-playing', on);
+
+  // Notes are not synced frame by frame during playback, so rather than let the
+  // bar sit on a stale frame number it goes inert until playback stops.
+  el.notebar.classList.toggle('is-idle', on);
+  el.noteInline.disabled = on;
   if (on) {
+    flushNote();
+    el.noteFrameLabel.textContent = '—';
+    el.noteState.textContent = '';
     clearOverlays();
-    el.video.play().catch((e) => {
+    // play() only settles once playback actually begins, which can take a
+    // while behind a pending seek or an unbuffered stream. Pausing, stepping
+    // or opening another file before then rejects it with AbortError. That is
+    // the user changing their mind mid-request, not a failure to report — and
+    // acting on it would also flip the UI out of sync with a newer intent.
+    Promise.resolve(el.video.play()).catch((e) => {
+      if (intent !== playIntent || e.name === 'AbortError') return;
       state.playing = false;
       el.btnPlay.classList.remove('is-playing');
       toast(`재생할 수 없습니다: ${e.message}`, true);
@@ -181,6 +202,9 @@ function setPlaying(on) {
     el.video.pause();
     // Land exactly on the frame that was showing when playback stopped.
     goToFrame(state.actual, { pause: false });
+    // Forced: stopping on the frame playback started from leaves the cursor
+    // unchanged, and syncNote would otherwise skip restoring the label.
+    syncNote(true);
   }
 }
 
@@ -821,6 +845,13 @@ function applyProject(data) {
  * ------------------------------------------------------------------ */
 
 async function mount(info) {
+  // Swapping the source under a running play() aborts it too, so stand the
+  // player down first and retire any request still in flight.
+  playIntent += 1;
+  state.playing = false;
+  el.btnPlay.classList.remove('is-playing');
+  el.video.pause();
+
   state.info = info;
   state.fmap = new FrameMap(info);
   state.markers = [];

@@ -607,6 +607,9 @@ input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.15); }
 }
 #note-inline:hover, #note-inline:focus { background: var(--bg-3); }
 
+.notebar.is-idle .notebar-head,
+.notebar.is-idle .notebar-body { opacity: 0.45; }
+
 .notebar.is-collapsed .notebar-body { display: none; }
 .notebar.is-collapsed .notebar-head { margin-bottom: 0; }
 #notebar-toggle svg { transition: transform 0.15s ease; }
