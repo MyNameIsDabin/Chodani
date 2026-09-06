@@ -97,6 +97,9 @@ kbd {
   align-items: center;
   justify-content: center;
   gap: 7px;
+  /* Never let a crowded flex row squeeze a button narrower than its width —
+     the round play button would flatten into a vertical ellipse. */
+  flex: 0 0 auto;
   height: 32px;
   padding: 0 12px;
   border: none;
