@@ -530,46 +530,41 @@ input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.15); }
   box-shadow: 0 0 0 2px var(--bg-1);
 }
 
-/* minmax(0, 1fr) rather than 1fr: a bare 1fr floors at the track's min-content
-   width, so the side groups refused to shrink and spilled over the readout. */
+/* Two groups, not three. Truly centring the readout is impossible once the
+   navigation side is wider than half the row minus the readout — it would sit
+   on top of the step field. Parking it beside the transport keeps the number
+   where the eye already is while stepping, and lets the row simply wrap when
+   it runs out of width. */
 .controls {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  column-gap: 14px;
+  row-gap: 6px;
 }
 .controls-left { display: flex; align-items: center; gap: 2px; min-width: 0; }
-.controls-right { display: flex; align-items: center; justify-content: flex-end; gap: 2px; min-width: 0; }
-.controls-center { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.controls-right { display: flex; align-items: center; gap: 4px; min-width: 0; }
 
-/* Two steps of shedding as the window narrows: first the right-hand labels
-   (tooltips still name them), then the readout moves to its own line. */
-@media (max-width: 1340px) {
-  .controls-right > .btn > span { display: none; }
-  .controls-right > .btn { width: 32px; padding: 0; }
+.readout {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-left: 10px;
 }
-@media (max-width: 1180px) {
-  .controls {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    column-gap: 10px;
-    row-gap: 4px;
-  }
-  .controls-center { order: -1; width: 100%; }
+
+@media (max-width: 1080px) {
   .step-label { display: none; }
-  /* Outranks the `.sidebar { flex: 0 0 300px }` shorthand declared further down. */
   .workspace .sidebar { flex-basis: 260px; }
 }
 
-.frame-readout { display: flex; align-items: baseline; gap: 6px; }
 .frame-input {
-  width: 100px;
+  width: 74px;
   height: 30px;
   padding: 0 6px;
   background: transparent;
   color: var(--fg);
-  font: 600 22px/1 var(--mono);
+  font: 600 20px/1 var(--mono);
   text-align: right;
   letter-spacing: -0.01em;
 }
@@ -578,29 +573,13 @@ input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.15); }
 .frame-total { color: var(--fg-3); font: 13px/1 var(--mono); }
 .frame-total b { color: var(--fg-2); font-weight: 500; }
 
-.time-readout { display: flex; align-items: center; gap: 8px; }
-#timecode { color: var(--fg-3); font: 12px/1 var(--mono); }
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  gap: 5px;
-  height: 20px;
-  padding: 0 9px;
-  border: none;
-  border-radius: 999px;
-  background: var(--bg-2);
+#timecode {
+  padding-left: 10px;
+  box-shadow: inset 1px 0 0 var(--hair);
   color: var(--fg-3);
-  font: 500 11px/1 var(--sans);
+  font: 13px/1 var(--mono);
   white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 0.12s ease, color 0.12s ease;
 }
-.chip:hover:not(:disabled) { background: var(--bg-3); color: var(--fg-2); }
-.chip:disabled { cursor: default; }
-.chip svg { width: 12px; height: 12px; }
-.chip.is-exact { background: var(--accent-soft); color: var(--accent); }
 
 /* ------------------------------------------------------------------ *
  * Note bar — always-on editor for the current frame's note

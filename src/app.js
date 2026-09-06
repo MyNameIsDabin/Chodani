@@ -39,7 +39,7 @@ const el = {
   dropHint: $('drop-hint'), stageBadge: $('stage-badge'),
   title: $('media-title'), meta: $('media-meta'),
   frameInput: $('frame-input'), frameTotal: $('frame-total'),
-  timecode: $('timecode'), fpsReadout: $('fps-readout'),
+  timecode: $('timecode'),
   timeline: $('timeline'), playhead: $('playhead'), markerLane: $('marker-lane'),
   loopBand: $('loop-band'), buffered: $('buffered'),
   btnPlay: $('btn-play'), stepSize: $('step-size'), speed: $('speed'),
@@ -252,17 +252,12 @@ function renderMeta() {
   ];
   if (i.transcoded) bits.push('변환됨');
   if (!i.has_audio) bits.push('무음');
+  // Local files with uneven timestamps get indexed exactly; a remote stream
+  // cannot be without downloading all of it, so say so rather than imply
+  // a precision we do not have.
+  if (i.variable_frame_rate && !state.fmap.indexed) bits.push('프레임 번호 추정');
   el.meta.textContent = bits.join(' · ');
   el.frameTotal.textContent = String(state.fmap.lastFrame);
-
-  const exact = state.fmap.indexed;
-  el.fpsReadout.textContent = exact ? '정확 인덱스' : (i.variable_frame_rate ? '가변 (추정)' : '고정');
-  const chip = $('btn-index');
-  chip.classList.toggle('is-exact', exact);
-  chip.disabled = exact;
-  chip.title = exact
-    ? '모든 프레임의 실제 표시 시각을 사용 중입니다.'
-    : '클릭하면 모든 프레임의 실제 표시 시각을 읽어 프레임 번호를 정확히 맞춥니다.';
 }
 
 /* ------------------------------------------------------------------ *
@@ -863,6 +858,7 @@ async function mount(info) {
 
   el.dropHint.hidden = true;
   el.video.playbackRate = Number(el.speed.value);
+  if (info.variable_frame_rate && info.kind === 'file') await buildIndex();
   renderMeta();
   renderMarkers();
   renderLoopBand();
@@ -871,30 +867,25 @@ async function mount(info) {
   const saved = await invoke('load_project', { origin: info.origin }).catch(() => null);
   applyProject(saved);
   refreshRecent();
-
-  // A variable frame rate means n / fps is only an estimate. Local files can be
-  // indexed exactly in the background; remote streams would need a full
-  // download, so those stay on the estimate until asked.
-  if (info.variable_frame_rate && info.kind === 'file') {
-    buildIndex(true);
-  }
 }
 
-async function buildIndex(quiet = false) {
+/**
+ * Replace the n / fps estimate with every frame's real presentation time.
+ *
+ * Only worth doing when the timestamps are uneven — for a constant-rate file
+ * the index reproduces n / fps exactly, so it would cost a full packet scan to
+ * learn nothing. Runs silently as part of opening: a stale frame number is not
+ * something the user could notice or act on, so it is not something to ask
+ * about.
+ */
+async function buildIndex() {
   if (!state.info) return;
-  if (!quiet) busy('프레임 인덱스를 만드는 중…');
   try {
     const times = await invoke('frame_index', { kind: state.info.kind, serve: state.info.serve });
-    if (state.fmap.setIndex(times)) {
-      renderMeta();
-      renderMarkers();
-      goToFrame(state.cursor);
-      if (!quiet) toast(`정확한 프레임 인덱스 완료 (${times.length} 프레임)`);
-    }
+    state.fmap.setIndex(times);
   } catch (e) {
-    if (!quiet) toast(`인덱스 생성 실패: ${e}`, true);
-  } finally {
-    if (!quiet) busyDone();
+    // The estimate stays in place; it is close enough to keep working with.
+    console.warn('frame index unavailable:', e);
   }
 }
 
@@ -1133,18 +1124,7 @@ $('btn-clear-loop').addEventListener('click', () => {
   saveSoon();
 });
 
-$('btn-index').addEventListener('click', () => {
-  if (!loaded()) return;
-  if (state.fmap.indexed) { toast('이미 정확한 인덱스를 사용 중입니다.'); return; }
-  if (state.info.kind === 'url'
-      && !confirm('원격 스트림은 전체를 읽어야 하므로 시간이 오래 걸립니다. 계속할까요?')) {
-    return;
-  }
-  buildIndex(false);
-});
-
 $('btn-bookmark').addEventListener('click', toggleBookmark);
-$('btn-note').addEventListener('click', focusNote);
 $('btn-export').addEventListener('click', exportCurrentFrame);
 $('btn-export-marks').addEventListener('click', exportAllMarkers);
 el.markerFilter.addEventListener('input', renderMarkers);

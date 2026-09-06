@@ -121,16 +121,6 @@ pub fn probe(kind: &str, serve: &str, origin: &str) -> Result<MediaInfo, String>
         .unwrap_or((25, 1));
     let fps = fps_num as f64 / fps_den as f64;
 
-    let avg = parse_rational(&str_field(video, "avg_frame_rate"));
-    // A ~0.5% gap is just rounding between 30000/1001 style rationals.
-    let variable_frame_rate = match avg {
-        Some((an, ad)) => {
-            let avg_fps = an as f64 / ad as f64;
-            (avg_fps - fps).abs() / fps.max(1e-9) > 0.005
-        }
-        None => true,
-    };
-
     let duration = num_field(video, "duration")
         .or_else(|| root.get("format").and_then(|f| num_field(f, "duration")))
         .unwrap_or(0.0);
@@ -142,6 +132,30 @@ pub fn probe(kind: &str, serve: &str, origin: &str) -> Result<MediaInfo, String>
         Some(n) => (n, true),
         None => (((duration * fps).round() as i64).max(0) as u64, false),
     };
+
+    // Whether frame n can be assumed to sit at n / fps. Two independent
+    // signals, because either alone misses real files:
+    //
+    //   1. r_frame_rate vs avg_frame_rate. A ~0.5% gap is just rounding
+    //      between 30000/1001 style rationals; more than that means the
+    //      container itself admits the rate varies.
+    //   2. Frame count vs duration x fps. A capture that dropped frames still
+    //      reports one nominal rate, so only the count gives it away.
+    //
+    // Getting this wrong is silent and costly — every frame number would be
+    // off — so it errs toward scanning, which merely costs a little I/O.
+    let rational_mismatch = match parse_rational(&str_field(video, "avg_frame_rate")) {
+        Some((an, ad)) => {
+            let avg_fps = an as f64 / ad as f64;
+            (avg_fps - fps).abs() / fps.max(1e-9) > 0.005
+        }
+        None => true,
+    };
+    let expected = duration * fps;
+    let count_mismatch = frame_count_exact
+        && expected > 0.0
+        && (frame_count as f64 - expected).abs() > (expected * 0.01).max(2.0);
+    let variable_frame_rate = rational_mismatch || count_mismatch;
 
     let title = if kind == "url" {
         origin.to_string()

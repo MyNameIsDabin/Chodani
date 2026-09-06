@@ -115,8 +115,15 @@
             <button id="btn-fwd-n" class="btn btn-icon" title="N프레임 앞으로 (Shift+→)"><svg><use href="#i-fwd-n"/></svg></button>
             <button id="btn-last" class="btn btn-icon" title="마지막 프레임 (End)"><svg><use href="#i-skip-fwd"/></svg></button>
 
-            <span class="divider"></span>
+            <div class="readout">
+              <input id="frame-input" class="frame-input" type="text" inputmode="numeric" value="0"
+                     title="프레임 번호 — 직접 입력하고 Enter" />
+              <span class="frame-total">/ <b id="frame-total">0</b></span>
+              <span id="timecode" title="시:분:초:프레임">00:00:00:00</span>
+            </div>
+          </div>
 
+          <div class="controls-right">
             <label class="field" title="Shift+화살표로 이동할 프레임 수">
               <span class="step-label">스텝</span>
               <input id="step-size" type="number" min="1" max="999" value="10" />
@@ -131,23 +138,9 @@
                 <option value="2">2×</option>
               </select>
             </label>
-          </div>
 
-          <div class="controls-center">
-            <div class="frame-readout">
-              <input id="frame-input" class="frame-input" type="text" inputmode="numeric" value="0" />
-              <span class="frame-total">/ <b id="frame-total">0</b></span>
-            </div>
-            <div class="time-readout">
-              <span id="timecode">00:00:00:00</span>
-              <button id="btn-index" class="chip"
-                      title="모든 프레임의 실제 표시 시각을 읽어 프레임 번호를 정확히 맞춥니다">
-                <svg><use href="#i-sparkle"/></svg><span id="fps-readout"></span>
-              </button>
-            </div>
-          </div>
+            <span class="divider"></span>
 
-          <div class="controls-right">
             <div class="seg">
               <button id="btn-loop" class="btn btn-icon btn-toggle" title="구간 반복 (L)"><svg><use href="#i-repeat"/></svg></button>
               <button id="btn-mark-in" class="btn btn-quiet btn-sm" title="반복 시작점 (I)">A</button>
@@ -157,9 +150,8 @@
 
             <span class="divider"></span>
 
-            <button id="btn-bookmark" class="btn btn-quiet" title="즐겨찾기 (B)"><svg><use href="#i-star"/></svg><span>즐겨찾기</span></button>
-            <button id="btn-note" class="btn btn-quiet" title="메모 추가 (M)"><svg><use href="#i-note"/></svg><span>메모</span></button>
-            <button id="btn-export" class="btn btn-quiet" title="현재 프레임 PNG 저장 (E)"><svg><use href="#i-image"/></svg><span>PNG</span></button>
+            <button id="btn-bookmark" class="btn btn-icon" title="즐겨찾기 (B)"><svg><use href="#i-star"/></svg></button>
+            <button id="btn-export" class="btn btn-icon" title="현재 프레임 PNG 저장 (E)"><svg><use href="#i-image"/></svg></button>
           </div>
         </div>
       </div>
