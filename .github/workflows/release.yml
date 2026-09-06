@@ -1,0 +1,52 @@
+name: Release
+
+# Push a version tag to cut a release:
+#   npm run bump 0.1.1 && git commit -am "v0.1.1" && git tag v0.1.1 && git push --follow-tags
+#
+# tauri-action builds the installer, signs it with the updater key, uploads
+# everything to a GitHub Release and writes the latest.json the app polls.
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and publish
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: Chodani ${{ github.ref_name }}
+          releaseBody: |
+            ### 설치
+            아래 `Chodani_*_x64-setup.exe`를 내려받아 실행하세요.
+
+            이미 설치되어 있다면 앱이 시작할 때 이 업데이트를 자동으로 감지합니다.
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true

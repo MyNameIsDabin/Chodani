@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Chodani",
+  "version": "0.1.0",
+  "identifier": "dev.chodani.player",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Chodani — Frame Reference Player",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 860,
+        "minHeight": 560,
+        "resizable": true,
+        "dragDropEnabled": true,
+        "theme": "Dark"
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/icon.ico"],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJEMzgwNDc4RUZGMUVEQjUKUldTMTdmSHZlQVE0dlZEL0U1WjdUQS9PRS9JQTdZY3BJK0tQeHFzUVpJMldERzVKSC9DYjExQUQK",
+      "endpoints": [
+        "https://github.com/MyNameIsDabin/Chodani/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

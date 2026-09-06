@@ -1,0 +1,20 @@
+{
+  "name": "chodani",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Frame-accurate reference video player for animation & VFX",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "tauri": "tauri",
+    "bump": "node scripts/bump-version.mjs"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MyNameIsDabin/Chodani.git"
+  },
+  "license": "MIT"
+}

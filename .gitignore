@@ -1,0 +1,35 @@
+# --- dependencies ---
+node_modules/
+
+# --- build output ---
+src-tauri/target/
+dist/
+
+# --- Tauri generated ---
+# Regenerated from tauri.conf.json + capabilities on every build.
+src-tauri/gen/schemas/
+
+# --- signing keys: never commit these ---
+# The updater private key lives outside the repo (~/.tauri/chodani.key) and in
+# the TAURI_SIGNING_PRIVATE_KEY repository secret.
+*.key
+*.pem
+*.p12
+*.pfx
+
+# --- local assets, not part of the source ---
+app-icon.png
+samples/
+
+# --- editors / OS ---
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/
+
+# --- logs ---
+*.log
+npm-debug.log*
