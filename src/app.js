@@ -53,8 +53,8 @@ const el = {
   onionNextOp: $('onion-next-op'), onionBlend: $('onion-blend'), onionTint: $('onion-tint'),
   compareMode: $('compare-mode'), pinOpacity: $('pin-opacity'), flipRow: $('flip-row'),
   toast: $('toast'), busy: $('busy'), busyText: $('busy-text'), busyBar: $('busy-bar'),
-  noteDialog: $('note-dialog'), noteTitle: $('note-title'), noteFrame: $('note-frame'),
-  noteText: $('note-text'), noteColors: $('note-colors'),
+  notebar: $('notebar'), noteInline: $('note-inline'), noteColors: $('note-colors'),
+  noteFrameLabel: $('note-frame-label'), noteState: $('note-state'),
   helpDialog: $('help-dialog'), helpGrid: $('help-grid'),
 };
 
@@ -82,7 +82,6 @@ const state = {
   zoom: 1,
   panX: 0,
   panY: 0,
-  noteDraft: null,
   saveTimer: null,
 };
 
@@ -131,6 +130,7 @@ function goToFrame(n, { pause = true } = {}) {
   state.cursor = state.fmap.clamp(n);
   renderReadout();
   state.pending = state.cursor;
+  syncNote();
   if (!state.seeking) flushSeek();
 }
 
@@ -157,6 +157,7 @@ function settle() {
   state.actual = state.fmap.frameAt(el.video.currentTime);
   if (!state.playing) state.cursor = state.actual;
   renderReadout();
+  syncNote();
   captureCurrent();
   scheduleOverlays();
 }
@@ -253,9 +254,15 @@ function renderMeta() {
   if (!i.has_audio) bits.push('무음');
   el.meta.textContent = bits.join(' · ');
   el.frameTotal.textContent = String(state.fmap.lastFrame);
-  el.fpsReadout.textContent = state.fmap.indexed
-    ? '정확 인덱스'
-    : (i.variable_frame_rate ? '가변 프레임레이트 (추정)' : '고정 프레임레이트');
+
+  const exact = state.fmap.indexed;
+  el.fpsReadout.textContent = exact ? '정확 인덱스' : (i.variable_frame_rate ? '가변 (추정)' : '고정');
+  const chip = $('btn-index');
+  chip.classList.toggle('is-exact', exact);
+  chip.disabled = exact;
+  chip.title = exact
+    ? '모든 프레임의 실제 표시 시각을 사용 중입니다.'
+    : '클릭하면 모든 프레임의 실제 표시 시각을 읽어 프레임 번호를 정확히 맞춥니다.';
 }
 
 /* ------------------------------------------------------------------ *
@@ -514,8 +521,10 @@ function sortMarkers() {
   state.markers.sort((a, b) => a.frame - b.frame);
 }
 
-function markerAt(frame, kind) {
-  return state.markers.find((m) => m.frame === frame && (!kind || m.kind === kind));
+/** The marker on `frame`, preferring one that already carries text. */
+function markerAt(frame) {
+  const here = state.markers.filter((m) => m.frame === frame);
+  return here.find((m) => m.text) || here[0] || null;
 }
 
 function addMarker(marker) {
@@ -531,35 +540,53 @@ function removeMarker(id) {
   saveSoon();
 }
 
+/**
+ * Star the current frame. A frame holds at most one marker, so this flips the
+ * kind of whatever is already there instead of stacking a second entry:
+ * nothing → bookmark, note → bookmark, bookmark with text → back to a note,
+ * bookmark without text → gone.
+ */
 function toggleBookmark() {
   if (!loaded()) return;
-  const existing = markerAt(state.cursor, 'bookmark');
-  if (existing) {
-    removeMarker(existing.id);
-    toast(`즐겨찾기 해제 (프레임 ${state.cursor})`);
-    return;
+  const existing = markerAt(state.cursor);
+  if (!existing) {
+    addMarker({
+      id: newId(), frame: state.cursor, kind: 'bookmark', text: '', color: noteColor,
+    });
+    toast(`즐겨찾기 추가 (프레임 ${state.cursor})`);
+  } else if (existing.kind === 'bookmark') {
+    if (existing.text) {
+      existing.kind = 'note';
+      renderMarkers();
+      saveSoon();
+      toast(`즐겨찾기 해제 (메모는 유지)`);
+    } else {
+      removeMarker(existing.id);
+      toast(`즐겨찾기 해제 (프레임 ${state.cursor})`);
+    }
+  } else {
+    existing.kind = 'bookmark';
+    renderMarkers();
+    saveSoon();
+    toast(`즐겨찾기 추가 (프레임 ${state.cursor})`);
   }
-  addMarker({
-    id: newId(), frame: state.cursor, kind: 'bookmark', text: '', color: MARKER_COLORS[0],
-  });
-  toast(`즐겨찾기 추가 (프레임 ${state.cursor})`);
+  syncNote(true);
 }
 
-function openNoteDialog(existing) {
-  if (!loaded()) return;
-  const frame = existing ? existing.frame : state.cursor;
-  state.noteDraft = {
-    id: existing?.id ?? null,
-    frame,
-    color: existing?.color ?? MARKER_COLORS[0],
-  };
-  el.noteTitle.textContent = existing ? '메모 수정' : '메모 추가';
-  el.noteFrame.textContent = `프레임 ${frame} · ${state.fmap.timecodeOf(frame)}`;
-  el.noteText.value = existing?.text ?? '';
-  renderColorChips();
-  el.noteDialog.showModal();
-  el.noteText.focus();
-}
+/* ------------------------------------------------------------------ *
+ * Note bar
+ *
+ * The textarea is bound to whatever frame the cursor sits on. Edits commit on
+ * a short debounce, and any pending edit is flushed before the frame changes,
+ * so stepping away from a half-typed note never loses it.
+ * ------------------------------------------------------------------ */
+
+const NOTEBAR_KEY = 'chodani.notebarCollapsed';
+
+let noteColor = MARKER_COLORS[0];
+/** Frame the textarea currently represents; null before any media is open. */
+let noteFrame = null;
+let noteTimer = null;
 
 function renderColorChips() {
   el.noteColors.innerHTML = '';
@@ -568,29 +595,105 @@ function renderColorChips() {
     chip.type = 'button';
     chip.className = 'color-chip';
     chip.style.background = color;
-    chip.classList.toggle('is-active', color === state.noteDraft.color);
+    chip.classList.toggle('is-active', color === noteColor);
+    chip.title = '메모 색';
     chip.addEventListener('click', () => {
-      state.noteDraft.color = color;
+      noteColor = color;
       renderColorChips();
+      const marker = markerAt(noteFrame ?? state.cursor);
+      if (marker) {
+        marker.color = color;
+        renderMarkers();
+        saveSoon();
+      }
     });
     el.noteColors.appendChild(chip);
   }
 }
 
-el.noteDialog.addEventListener('close', () => {
-  if (el.noteDialog.returnValue !== 'save' || !state.noteDraft) return;
-  const { id, frame, color } = state.noteDraft;
-  const text = el.noteText.value.trim();
-  if (id) {
-    const m = state.markers.find((x) => x.id === id);
-    if (m) { m.text = text; m.color = color; }
+/** Write the textarea's contents back onto `frame`, creating or removing as needed. */
+function commitNote(frame) {
+  if (frame === null || !loaded()) return;
+  const text = el.noteInline.value.trim();
+  const existing = markerAt(frame);
+
+  if (!text) {
+    // A starred frame keeps its star when the text is cleared.
+    if (!existing) return;
+    if (existing.kind === 'bookmark') {
+      if (!existing.text) return;
+      existing.text = '';
+      renderMarkers();
+      saveSoon();
+    } else {
+      removeMarker(existing.id);
+    }
+  } else if (existing) {
+    if (existing.text === text && existing.color === noteColor) return;
+    existing.text = text;
+    existing.color = noteColor;
     renderMarkers();
     saveSoon();
   } else {
-    addMarker({ id: newId(), frame, kind: 'note', text, color });
+    addMarker({ id: newId(), frame, kind: 'note', text, color: noteColor });
   }
-  state.noteDraft = null;
+  el.noteState.textContent = text ? '저장됨' : '';
+}
+
+function flushNote() {
+  clearTimeout(noteTimer);
+  noteTimer = null;
+  commitNote(noteFrame);
+}
+
+/** Point the textarea at the current frame. No-op while playing back. */
+function syncNote(force = false) {
+  if (!loaded()) return;
+  if (state.playing && !force) return;
+  const frame = state.cursor;
+  if (frame === noteFrame && !force) return;
+
+  if (frame !== noteFrame) flushNote();
+  noteFrame = frame;
+
+  // Reaching here means the frame really changed (or a forced refresh), so the
+  // textarea is repointed even while focused — that is what Alt+arrows are for.
+  const marker = markerAt(frame);
+  el.noteInline.value = marker?.text ?? '';
+  if (marker) noteColor = marker.color;
+  renderColorChips();
+  el.noteFrameLabel.textContent = String(frame);
+  el.noteState.textContent = marker?.text ? '저장됨' : '';
+}
+
+function focusNote() {
+  if (!loaded()) return;
+  el.notebar.classList.remove('is-collapsed');
+  localStorage.setItem(NOTEBAR_KEY, '0');
+  syncNote(true);
+  el.noteInline.focus();
+  el.noteInline.setSelectionRange(el.noteInline.value.length, el.noteInline.value.length);
+}
+
+el.noteInline.addEventListener('input', () => {
+  el.noteState.textContent = '입력 중…';
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(() => commitNote(noteFrame), 400);
 });
+el.noteInline.addEventListener('blur', flushNote);
+
+$('btn-note-clear').addEventListener('click', () => {
+  el.noteInline.value = '';
+  flushNote();
+  syncNote(true);
+});
+
+$('notebar-toggle').addEventListener('click', () => {
+  const collapsed = el.notebar.classList.toggle('is-collapsed');
+  localStorage.setItem(NOTEBAR_KEY, collapsed ? '1' : '0');
+});
+if (localStorage.getItem(NOTEBAR_KEY) === '1') el.notebar.classList.add('is-collapsed');
+renderColorChips();
 
 function renderMarkers() {
   const query = el.markerFilter.value.trim().toLowerCase();
@@ -630,7 +733,7 @@ function renderMarkers() {
     edit.className = 'icon-btn';
     edit.innerHTML = '<svg><use href="#i-edit"/></svg>';
     edit.title = '메모 수정';
-    edit.addEventListener('click', (e) => { e.stopPropagation(); openNoteDialog(m); });
+    edit.addEventListener('click', (e) => { e.stopPropagation(); goToFrame(m.frame); focusNote(); });
     const del = document.createElement('button');
     del.className = 'icon-btn';
     del.innerHTML = '<svg><use href="#i-x"/></svg>';
@@ -715,6 +818,7 @@ function applyProject(data) {
   renderMarkers();
   renderLoopBand();
   if (Number.isInteger(data.last_frame)) goToFrame(data.last_frame);
+  syncNote(true);
 }
 
 /* ------------------------------------------------------------------ *
@@ -725,6 +829,9 @@ async function mount(info) {
   state.info = info;
   state.fmap = new FrameMap(info);
   state.markers = [];
+  noteFrame = null;
+  el.noteInline.value = '';
+  el.noteInline.disabled = false;
   state.loopA = state.loopB = null;
   state.looping = false;
   state.pinned = null;
@@ -1037,7 +1144,7 @@ $('btn-index').addEventListener('click', () => {
 });
 
 $('btn-bookmark').addEventListener('click', toggleBookmark);
-$('btn-note').addEventListener('click', () => openNoteDialog(null));
+$('btn-note').addEventListener('click', focusNote);
 $('btn-export').addEventListener('click', exportCurrentFrame);
 $('btn-export-marks').addEventListener('click', exportAllMarkers);
 el.markerFilter.addEventListener('input', renderMarkers);
@@ -1118,7 +1225,7 @@ const SHORTCUTS = [
   ['Shift + ← →', 'N프레임 이동'],
   ['Ctrl + ← →', '1초 이동'],
   ['Home / End', '처음 / 끝'],
-  ['M', '메모 추가'],
+  ['M', '메모 칸으로 이동'],
   ['B', '즐겨찾기 토글'],
   ['I / O', '반복 A / B 지정'],
   ['L', '구간 반복 켜기·끄기'],
@@ -1126,6 +1233,8 @@ const SHORTCUTS = [
   ['P', '현재 프레임 고정'],
   ['\\ (누르는 동안)', '고정 프레임 겹쳐보기'],
   ['E', '현재 프레임 PNG 저장'],
+  ['Alt + ← →', '메모를 쓰면서 프레임 이동'],
+  ['Esc', '메모 칸에서 빠져나가기'],
   ['[ / ]', '스텝 크기 조절'],
   ['0', '확대 초기화'],
   ['1 … 9', 'n번째 마커로 이동'],
@@ -1141,10 +1250,24 @@ window.addEventListener('keydown', (e) => {
     if (!typing(e)) { e.preventDefault(); el.helpDialog.showModal(); }
     return;
   }
-  if (typing(e) || el.noteDialog.open || el.helpDialog.open) return;
+  if (el.helpDialog.open || $('update-dialog').open) return;
   if (!loaded()) return;
 
   const big = e.ctrlKey ? Math.round(state.fmap.fps) : (e.shiftKey ? stepSize() : 1);
+
+  if (typing(e)) {
+    // Alt+arrows still step frames while the caret is in the note box — the
+    // whole point of the note bar is annotating as you walk through frames.
+    if (e.target === el.noteInline && e.altKey && e.key.startsWith('Arrow')) {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        step(e.key === 'ArrowLeft' ? -big : big);
+      }
+    } else if (e.key === 'Escape' && e.target === el.noteInline) {
+      el.noteInline.blur();
+    }
+    return;
+  }
 
   switch (e.key) {
     case ' ': e.preventDefault(); setPlaying(!state.playing); break;
@@ -1152,7 +1275,7 @@ window.addEventListener('keydown', (e) => {
     case 'ArrowRight': case '.': e.preventDefault(); step(big); break;
     case 'Home': e.preventDefault(); goToFrame(0); break;
     case 'End': e.preventDefault(); goToFrame(state.fmap.lastFrame); break;
-    case 'm': case 'M': case 'ㅡ': e.preventDefault(); openNoteDialog(null); break;
+    case 'm': case 'M': case 'ㅡ': e.preventDefault(); focusNote(); break;
     case 'b': case 'B': e.preventDefault(); toggleBookmark(); break;
     case 'i': case 'I': $('btn-mark-in').click(); break;
     case 'o': case 'O': $('btn-mark-out').click(); break;

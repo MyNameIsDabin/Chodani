@@ -30,6 +30,7 @@
     <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/></symbol>
     <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></symbol>
     <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
   </svg>
 
   <header class="topbar">
@@ -117,7 +118,7 @@
             <span class="divider"></span>
 
             <label class="field" title="Shift+화살표로 이동할 프레임 수">
-              <span>스텝</span>
+              <span class="step-label">스텝</span>
               <input id="step-size" type="number" min="1" max="999" value="10" />
             </label>
             <label class="field" title="재생 속도">
@@ -139,9 +140,10 @@
             </div>
             <div class="time-readout">
               <span id="timecode">00:00:00:00</span>
-              <span id="fps-readout" class="meta"></span>
-              <button id="btn-index" class="btn btn-quiet btn-xs"
-                      title="모든 프레임의 실제 표시 시각을 읽어 프레임 번호를 정확히 맞춥니다">정확 인덱스</button>
+              <button id="btn-index" class="chip"
+                      title="모든 프레임의 실제 표시 시각을 읽어 프레임 번호를 정확히 맞춥니다">
+                <svg><use href="#i-sparkle"/></svg><span id="fps-readout"></span>
+              </button>
             </div>
           </div>
 
@@ -161,6 +163,23 @@
           </div>
         </div>
       </div>
+
+      <section id="notebar" class="notebar">
+        <header class="notebar-head">
+          <button id="notebar-toggle" class="btn btn-icon btn-sm" title="메모 영역 접기/펼치기">
+            <svg><use href="#i-chevron"/></svg>
+          </button>
+          <span class="notebar-title">프레임 <b id="note-frame-label">0</b> 메모</span>
+          <span class="notebar-colors" id="note-colors"></span>
+          <span class="notebar-state meta" id="note-state"></span>
+          <button id="btn-note-clear" class="btn btn-quiet btn-sm" title="이 프레임의 메모 지우기">지우기</button>
+        </header>
+        <div class="notebar-body">
+          <textarea id="note-inline" rows="2" spellcheck="false" disabled
+            title="Alt+←/→ 로 적으면서 프레임 이동 · Esc 로 빠져나가기"
+            placeholder="이 프레임에 대한 메모 — 자동 저장됩니다"></textarea>
+        </div>
+      </section>
     </section>
 
     <aside class="sidebar">
@@ -323,19 +342,6 @@
       <div class="progress" hidden><div id="busy-bar"></div></div>
     </div>
   </div>
-
-  <dialog id="note-dialog" class="dialog">
-    <form method="dialog">
-      <h3 id="note-title">메모</h3>
-      <p class="meta" id="note-frame"></p>
-      <textarea id="note-text" rows="4" placeholder="이 프레임에 대한 메모…"></textarea>
-      <div class="color-row" id="note-colors"></div>
-      <menu>
-        <button value="cancel" class="btn btn-quiet">취소</button>
-        <button value="save" id="note-save" class="btn btn-accent">저장</button>
-      </menu>
-    </form>
-  </dialog>
 
   <dialog id="update-dialog" class="dialog">
     <form method="dialog">

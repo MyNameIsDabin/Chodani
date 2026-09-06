@@ -287,8 +287,10 @@ input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.15); }
 }
 .url-field:focus-within { background: var(--bg-3); box-shadow: var(--ring); }
 .url-icon { color: var(--fg-3); }
+.url-field { flex: 0 1 auto; min-width: 0; }
 .url-field input {
-  width: 300px;
+  flex: 1 1 300px;
+  min-width: 70px;
   height: 100%;
   padding: 0 6px;
   background: transparent;
@@ -305,7 +307,12 @@ input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.15); }
   min-width: 0;
   line-height: 1.25;
 }
-#media-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.title-slot > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#media-title { font-weight: 600; }
 
 .topbar-actions { display: flex; align-items: center; gap: 6px; }
 
@@ -523,23 +530,37 @@ input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.15); }
   box-shadow: 0 0 0 2px var(--bg-1);
 }
 
+/* minmax(0, 1fr) rather than 1fr: a bare 1fr floors at the track's min-content
+   width, so the side groups refused to shrink and spilled over the readout. */
 .controls {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 12px;
 }
 .controls-left { display: flex; align-items: center; gap: 2px; min-width: 0; }
 .controls-right { display: flex; align-items: center; justify-content: flex-end; gap: 2px; min-width: 0; }
+.controls-center { display: flex; flex-direction: column; align-items: center; gap: 1px; }
 
-/* Below ~1500px the right-hand labels no longer fit beside the readout;
-   collapse them to icons (tooltips still carry the names). */
-@media (max-width: 1520px) {
+/* Two steps of shedding as the window narrows: first the right-hand labels
+   (tooltips still name them), then the readout moves to its own line. */
+@media (max-width: 1340px) {
   .controls-right > .btn > span { display: none; }
   .controls-right > .btn { width: 32px; padding: 0; }
 }
-
-.controls-center { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+@media (max-width: 1180px) {
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    column-gap: 10px;
+    row-gap: 4px;
+  }
+  .controls-center { order: -1; width: 100%; }
+  .step-label { display: none; }
+  /* Outranks the `.sidebar { flex: 0 0 300px }` shorthand declared further down. */
+  .workspace .sidebar { flex-basis: 260px; }
+}
 
 .frame-readout { display: flex; align-items: baseline; gap: 6px; }
 .frame-input {
@@ -559,6 +580,58 @@ input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.15); }
 
 .time-readout { display: flex; align-items: center; gap: 8px; }
 #timecode { color: var(--fg-3); font: 12px/1 var(--mono); }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 5px;
+  height: 20px;
+  padding: 0 9px;
+  border: none;
+  border-radius: 999px;
+  background: var(--bg-2);
+  color: var(--fg-3);
+  font: 500 11px/1 var(--sans);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.chip:hover:not(:disabled) { background: var(--bg-3); color: var(--fg-2); }
+.chip:disabled { cursor: default; }
+.chip svg { width: 12px; height: 12px; }
+.chip.is-exact { background: var(--accent-soft); color: var(--accent); }
+
+/* ------------------------------------------------------------------ *
+ * Note bar — always-on editor for the current frame's note
+ * ------------------------------------------------------------------ */
+
+.notebar {
+  flex: 0 0 auto;
+  padding: 8px 14px 10px;
+  background: var(--bg-1);
+  box-shadow: inset 0 1px 0 var(--hair);
+}
+.notebar-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.notebar-title { color: var(--fg-2); font-size: 12px; }
+.notebar-title b { color: var(--accent); font: 600 12px/1 var(--mono); }
+.notebar-colors { display: flex; gap: 6px; margin-left: 4px; }
+.notebar .color-chip { width: 15px; height: 15px; }
+.notebar .color-chip.is-active { box-shadow: 0 0 0 2px var(--bg-1), 0 0 0 3.5px var(--fg); }
+.notebar-state { margin-left: auto; }
+
+#note-inline {
+  width: 100%;
+  min-height: 54px;
+  background: var(--bg-2);
+  font-size: 13px;
+}
+#note-inline:hover, #note-inline:focus { background: var(--bg-3); }
+
+.notebar.is-collapsed .notebar-body { display: none; }
+.notebar.is-collapsed .notebar-head { margin-bottom: 0; }
+#notebar-toggle svg { transition: transform 0.15s ease; }
+.notebar.is-collapsed #notebar-toggle svg { transform: rotate(-90deg); }
 
 /* ------------------------------------------------------------------ *
  * Sidebar
