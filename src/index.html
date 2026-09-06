@@ -7,6 +7,31 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- Icon sprite: single stroke set so every control reads the same weight. -->
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-skip-back" viewBox="0 0 24 24"><path d="M6 5v14M18 6l-9 6 9 6z"/></symbol>
+    <symbol id="i-skip-fwd" viewBox="0 0 24 24"><path d="M18 5v14M6 6l9 6-9 6z"/></symbol>
+    <symbol id="i-back-n" viewBox="0 0 24 24"><path d="M17 6l-6 6 6 6M11 6l-6 6 6 6"/></symbol>
+    <symbol id="i-fwd-n" viewBox="0 0 24 24"><path d="M7 6l6 6-6 6M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-back-1" viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></symbol>
+    <symbol id="i-fwd-1" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5.5h2.5v13H8zM13.5 5.5H16v13h-2.5z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 16.9l-5.3 2.8 1.1-5.9-4.3-4.1 5.9-.8z"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-5 4v-4h-.5A1.5 1.5 0 0 1 3 14.5z"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM4 16l5-5 4 4 2-2 5 5"/><circle cx="15.5" cy="8.5" r="1.5"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.5 1.5M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.3-4.3"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17z"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3 3v1H7v-1l3-3zM12 14v6"/></symbol>
+    <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></symbol>
+    <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></symbol>
+  </svg>
+
   <header class="topbar">
     <div class="brand">
       <span class="brand-mark"></span>
@@ -14,11 +39,14 @@
     </div>
 
     <div class="open-group">
-      <button id="btn-open" class="btn btn-primary">파일 열기</button>
+      <button id="btn-open" class="btn btn-filled">
+        <svg><use href="#i-folder"/></svg><span>파일 열기</span>
+      </button>
       <div class="url-field">
+        <svg class="url-icon"><use href="#i-link"/></svg>
         <input id="url-input" type="text" spellcheck="false"
                placeholder="YouTube 등 영상 링크를 붙여넣고 Enter" />
-        <button id="btn-load-url" class="btn">불러오기</button>
+        <button id="btn-load-url" class="btn btn-quiet">불러오기</button>
       </div>
     </div>
 
@@ -28,8 +56,10 @@
     </div>
 
     <div class="topbar-actions">
-      <button id="btn-update-badge" class="btn btn-primary btn-sm" hidden></button>
-      <button id="btn-help" class="btn btn-ghost" title="단축키 (?)">?</button>
+      <button id="btn-update-badge" class="btn btn-accent btn-sm" hidden></button>
+      <button id="btn-help" class="btn btn-icon" title="단축키 (?)">
+        <svg><use href="#i-help"/></svg>
+      </button>
     </div>
   </header>
 
@@ -38,6 +68,7 @@
       <div id="stage" class="stage" tabindex="0">
         <div id="drop-hint" class="drop-hint">
           <div class="drop-hint-inner">
+            <div class="drop-glyph"><svg><use href="#i-image"/></svg></div>
             <p class="drop-title">영상을 여기로 끌어다 놓으세요</p>
             <p class="drop-sub">mp4 · mov · mkv · webm · avi · gif — 또는 위에 링크 붙여넣기</p>
           </div>
@@ -60,65 +91,73 @@
       </div>
 
       <div class="transport">
-        <div class="readout">
-          <div class="frame-readout">
-            <input id="frame-input" class="frame-input" type="text" inputmode="numeric" value="0" />
-            <span class="frame-total">/ <b id="frame-total">0</b></span>
-          </div>
-          <div class="time-readout">
-            <span id="timecode">00:00:00:00</span>
-            <span id="fps-readout" class="meta"></span>
-            <button id="btn-index" class="btn btn-ghost btn-sm"
-                    title="모든 프레임의 실제 표시 시각을 읽어 프레임 번호를 정확히 맞춥니다">정확 인덱스</button>
+        <div class="timeline-row">
+          <div id="timeline" class="timeline">
+            <div class="track"></div>
+            <div id="buffered" class="buffered"></div>
+            <div id="loop-band" class="loop-band" hidden></div>
+            <div id="marker-lane" class="marker-lane"></div>
+            <div id="playhead" class="playhead"></div>
           </div>
         </div>
 
         <div class="controls">
-          <button id="btn-first" class="btn btn-icon" title="첫 프레임 (Home)">⏮</button>
-          <button id="btn-back-n" class="btn btn-icon" title="N프레임 뒤로 (Shift+←)">◀◀</button>
-          <button id="btn-back-1" class="btn btn-icon" title="1프레임 뒤로 (← 또는 ,)">◀</button>
-          <button id="btn-play" class="btn btn-icon btn-play" title="재생/정지 (Space)">▶</button>
-          <button id="btn-fwd-1" class="btn btn-icon" title="1프레임 앞으로 (→ 또는 .)">▶</button>
-          <button id="btn-fwd-n" class="btn btn-icon" title="N프레임 앞으로 (Shift+→)">▶▶</button>
-          <button id="btn-last" class="btn btn-icon" title="마지막 프레임 (End)">⏭</button>
+          <div class="controls-left">
+            <button id="btn-first" class="btn btn-icon" title="첫 프레임 (Home)"><svg><use href="#i-skip-back"/></svg></button>
+            <button id="btn-back-n" class="btn btn-icon" title="N프레임 뒤로 (Shift+←)"><svg><use href="#i-back-n"/></svg></button>
+            <button id="btn-back-1" class="btn btn-icon" title="1프레임 뒤로 (← 또는 ,)"><svg><use href="#i-back-1"/></svg></button>
+            <button id="btn-play" class="btn btn-icon btn-play" title="재생/정지 (Space)">
+              <svg class="ic-play"><use href="#i-play"/></svg>
+              <svg class="ic-pause"><use href="#i-pause"/></svg>
+            </button>
+            <button id="btn-fwd-1" class="btn btn-icon" title="1프레임 앞으로 (→ 또는 .)"><svg><use href="#i-fwd-1"/></svg></button>
+            <button id="btn-fwd-n" class="btn btn-icon" title="N프레임 앞으로 (Shift+→)"><svg><use href="#i-fwd-n"/></svg></button>
+            <button id="btn-last" class="btn btn-icon" title="마지막 프레임 (End)"><svg><use href="#i-skip-fwd"/></svg></button>
 
-          <label class="field step-field" title="Shift+화살표로 이동할 프레임 수">
-            <span>스텝</span>
-            <input id="step-size" type="number" min="1" max="999" value="10" />
-          </label>
+            <span class="divider"></span>
 
-          <label class="field" title="재생 속도">
-            <span>속도</span>
-            <select id="speed">
-              <option value="0.1">0.1x</option>
-              <option value="0.25">0.25x</option>
-              <option value="0.5">0.5x</option>
-              <option value="1" selected>1x</option>
-              <option value="1.5">1.5x</option>
-              <option value="2">2x</option>
-            </select>
-          </label>
+            <label class="field" title="Shift+화살표로 이동할 프레임 수">
+              <span>스텝</span>
+              <input id="step-size" type="number" min="1" max="999" value="10" />
+            </label>
+            <label class="field" title="재생 속도">
+              <select id="speed">
+                <option value="0.1">0.1×</option>
+                <option value="0.25">0.25×</option>
+                <option value="0.5">0.5×</option>
+                <option value="1" selected>1×</option>
+                <option value="1.5">1.5×</option>
+                <option value="2">2×</option>
+              </select>
+            </label>
+          </div>
 
-          <span class="spacer"></span>
+          <div class="controls-center">
+            <div class="frame-readout">
+              <input id="frame-input" class="frame-input" type="text" inputmode="numeric" value="0" />
+              <span class="frame-total">/ <b id="frame-total">0</b></span>
+            </div>
+            <div class="time-readout">
+              <span id="timecode">00:00:00:00</span>
+              <span id="fps-readout" class="meta"></span>
+              <button id="btn-index" class="btn btn-quiet btn-xs"
+                      title="모든 프레임의 실제 표시 시각을 읽어 프레임 번호를 정확히 맞춥니다">정확 인덱스</button>
+            </div>
+          </div>
 
-          <button id="btn-loop" class="btn btn-toggle" title="구간 반복 (L)">🔁 반복</button>
-          <button id="btn-mark-in" class="btn" title="반복 시작점 (I)">A 지정</button>
-          <button id="btn-mark-out" class="btn" title="반복 끝점 (O)">B 지정</button>
-          <button id="btn-clear-loop" class="btn btn-ghost" title="구간 해제">해제</button>
+          <div class="controls-right">
+            <div class="seg">
+              <button id="btn-loop" class="btn btn-icon btn-toggle" title="구간 반복 (L)"><svg><use href="#i-repeat"/></svg></button>
+              <button id="btn-mark-in" class="btn btn-quiet btn-sm" title="반복 시작점 (I)">A</button>
+              <button id="btn-mark-out" class="btn btn-quiet btn-sm" title="반복 끝점 (O)">B</button>
+              <button id="btn-clear-loop" class="btn btn-icon btn-sm" title="구간 해제"><svg><use href="#i-x"/></svg></button>
+            </div>
 
-          <span class="spacer"></span>
+            <span class="divider"></span>
 
-          <button id="btn-bookmark" class="btn" title="즐겨찾기 (B)">★ 즐겨찾기</button>
-          <button id="btn-note" class="btn" title="메모 추가 (M)">✎ 메모</button>
-          <button id="btn-export" class="btn" title="현재 프레임 PNG 저장 (E)">PNG 저장</button>
-        </div>
-
-        <div class="timeline-row">
-          <div id="timeline" class="timeline">
-            <div id="loop-band" class="loop-band" hidden></div>
-            <div id="marker-lane" class="marker-lane"></div>
-            <div id="buffered" class="buffered"></div>
-            <div id="playhead" class="playhead"></div>
+            <button id="btn-bookmark" class="btn btn-quiet" title="즐겨찾기 (B)"><svg><use href="#i-star"/></svg><span>즐겨찾기</span></button>
+            <button id="btn-note" class="btn btn-quiet" title="메모 추가 (M)"><svg><use href="#i-note"/></svg><span>메모</span></button>
+            <button id="btn-export" class="btn btn-quiet" title="현재 프레임 PNG 저장 (E)"><svg><use href="#i-image"/></svg><span>PNG</span></button>
           </div>
         </div>
       </div>
@@ -133,38 +172,43 @@
 
       <div class="tab-panel is-active" data-panel="markers">
         <div class="panel-head">
-          <input id="marker-filter" class="input" type="text" placeholder="메모 검색" />
-          <button id="btn-export-marks" class="btn btn-ghost btn-sm" title="모든 마커 프레임을 PNG로 내보내기">일괄 PNG</button>
+          <div class="search">
+            <svg><use href="#i-search"/></svg>
+            <input id="marker-filter" class="input" type="text" placeholder="메모 검색" />
+          </div>
+          <button id="btn-export-marks" class="btn btn-quiet btn-sm" title="모든 마커 프레임을 PNG로 내보내기">일괄 PNG</button>
         </div>
         <ul id="marker-list" class="marker-list"></ul>
-        <p id="marker-empty" class="empty">아직 마커가 없습니다.<br />B(즐겨찾기) 또는 M(메모)으로 현재 프레임을 기록하세요.</p>
+        <p id="marker-empty" class="empty">아직 마커가 없습니다.<br />
+          <kbd>B</kbd> 즐겨찾기 · <kbd>M</kbd> 메모로 현재 프레임을 기록하세요.</p>
         <div class="panel-foot">
-          <button id="btn-import" class="btn btn-ghost btn-sm">가져오기</button>
-          <button id="btn-export-json" class="btn btn-ghost btn-sm">내보내기</button>
+          <button id="btn-import" class="btn btn-quiet btn-sm">가져오기</button>
+          <button id="btn-export-json" class="btn btn-quiet btn-sm">내보내기</button>
           <span id="save-state" class="meta"></span>
         </div>
       </div>
 
       <div class="tab-panel" data-panel="compare">
-        <div class="opt-group">
-          <div class="opt-title">어니언 스킨</div>
-          <label class="switch">
-            <input id="onion-on" type="checkbox" /><span>켜기 <kbd>N</kbd></span>
-          </label>
-          <label class="field wide">
+        <section class="card">
+          <header class="card-head">
+            <span class="card-title">어니언 스킨</span>
+            <label class="toggle" title="N">
+              <input id="onion-on" type="checkbox" /><span class="toggle-track"></span>
+            </label>
+          </header>
+          <label class="row">
             <span>간격</span>
-            <input id="onion-gap" type="number" min="1" max="240" value="1" />
-            <span class="unit">프레임</span>
+            <span class="row-ctl"><input id="onion-gap" type="number" min="1" max="240" value="1" /><em>프레임</em></span>
           </label>
-          <label class="field wide">
+          <label class="row">
             <span>이전</span>
             <input id="onion-prev-op" type="range" min="0" max="100" value="45" />
           </label>
-          <label class="field wide">
+          <label class="row">
             <span>다음</span>
             <input id="onion-next-op" type="range" min="0" max="100" value="35" />
           </label>
-          <label class="field wide">
+          <label class="row">
             <span>혼합</span>
             <select id="onion-blend">
               <option value="normal">기본</option>
@@ -173,18 +217,20 @@
               <option value="lighten">밝게</option>
             </select>
           </label>
-          <label class="switch">
-            <input id="onion-tint" type="checkbox" checked /><span>색상 구분 (이전 빨강 / 다음 초록)</span>
+          <label class="row">
+            <span>색상 구분</span>
+            <label class="toggle"><input id="onion-tint" type="checkbox" checked /><span class="toggle-track"></span></label>
           </label>
-        </div>
+          <p class="hint">이전 프레임은 빨강, 다음 프레임은 초록으로 표시됩니다.</p>
+        </section>
 
-        <div class="opt-group">
-          <div class="opt-title">프레임 고정 비교</div>
+        <section class="card">
+          <header class="card-head"><span class="card-title">프레임 고정 비교</span></header>
           <div class="btn-row">
-            <button id="btn-pin" class="btn btn-sm">현재 프레임 고정 <kbd>P</kbd></button>
-            <button id="btn-unpin" class="btn btn-ghost btn-sm">해제</button>
+            <button id="btn-pin" class="btn btn-filled btn-sm"><svg><use href="#i-pin"/></svg><span>현재 프레임 고정</span></button>
+            <button id="btn-unpin" class="btn btn-quiet btn-sm">해제</button>
           </div>
-          <label class="field wide">
+          <label class="row">
             <span>보기</span>
             <select id="compare-mode">
               <option value="off">끄기</option>
@@ -192,38 +238,39 @@
               <option value="flip">겹쳐서 전환</option>
             </select>
           </label>
-          <label class="field wide" id="flip-row" hidden>
+          <label class="row" id="flip-row" hidden>
             <span>겹침</span>
             <input id="pin-opacity" type="range" min="0" max="100" value="100" />
           </label>
-          <p class="hint"><kbd>\</kbd> 키를 누르고 있는 동안 고정 프레임을 표시합니다.</p>
-        </div>
+          <p class="hint"><kbd>P</kbd> 고정 · <kbd>\</kbd> 누르는 동안 고정 프레임 표시</p>
+        </section>
 
-        <div class="opt-group">
-          <div class="opt-title">보기</div>
+        <section class="card">
+          <header class="card-head"><span class="card-title">보기</span></header>
           <div class="btn-row">
-            <button id="btn-fit" class="btn btn-sm">화면 맞춤 <kbd>F</kbd></button>
-            <button id="btn-zoom-reset" class="btn btn-ghost btn-sm">100% <kbd>0</kbd></button>
+            <button id="btn-fit" class="btn btn-quiet btn-sm"><svg><use href="#i-fit"/></svg><span>화면 맞춤</span></button>
+            <button id="btn-zoom-reset" class="btn btn-quiet btn-sm">100%</button>
           </div>
-          <p class="hint">휠로 확대/축소, 드래그로 이동합니다.</p>
-        </div>
+          <p class="hint">휠로 확대·축소, 드래그로 이동 · <kbd>0</kbd> 초기화</p>
+        </section>
       </div>
 
       <div class="tab-panel" data-panel="library">
-        <div class="opt-group">
-          <div class="opt-title">최근 작업</div>
+        <section class="card">
+          <header class="card-head"><span class="card-title">최근 작업</span></header>
           <ul id="recent-list" class="recent-list"></ul>
-        </div>
-        <div class="opt-group">
-          <div class="opt-title">링크 불러오기 설정</div>
-          <label class="field wide">
+        </section>
+
+        <section class="card">
+          <header class="card-head"><span class="card-title">링크 불러오기</span></header>
+          <label class="row">
             <span>화질</span>
             <select id="stream-quality">
               <option value="video">고화질 (소리 없음)</option>
               <option value="muxed">소리 포함 (화질 낮음)</option>
             </select>
           </label>
-          <label class="field wide">
+          <label class="row">
             <span>최대 높이</span>
             <select id="stream-height">
               <option value="480">480p</option>
@@ -233,27 +280,36 @@
               <option value="2160">2160p</option>
             </select>
           </label>
-          <label class="switch">
-            <input id="stream-download" type="checkbox" /><span>스트리밍 대신 내려받아 열기 (더 안정적)</span>
+          <label class="row">
+            <span>내려받아 열기</span>
+            <label class="toggle"><input id="stream-download" type="checkbox" /><span class="toggle-track"></span></label>
           </label>
-        </div>
-        <div class="opt-group">
-          <div class="opt-title">도구 상태</div>
+          <p class="hint">스트림 주소는 시간이 지나면 만료됩니다. 오래 볼 영상이면 내려받는 편이 안정적입니다.</p>
+        </section>
+
+        <section class="card">
+          <header class="card-head"><span class="card-title">도구</span></header>
           <ul id="tool-status" class="tool-status"></ul>
-          <button id="btn-install-ytdlp" class="btn btn-sm" hidden>yt-dlp 설치</button>
-          <button id="btn-open-cache" class="btn btn-ghost btn-sm">캐시 폴더 열기</button>
-        </div>
-        <div class="opt-group">
-          <div class="opt-title">버전</div>
-          <p class="meta" id="app-version">—</p>
-          <label class="switch">
-            <input id="auto-update-check" type="checkbox" checked /><span>시작할 때 업데이트 확인</span>
+          <div class="btn-row">
+            <button id="btn-install-ytdlp" class="btn btn-filled btn-sm" hidden>yt-dlp 설치</button>
+            <button id="btn-open-cache" class="btn btn-quiet btn-sm">캐시 폴더 열기</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <header class="card-head">
+            <span class="card-title">버전</span>
+            <span class="meta" id="app-version">—</span>
+          </header>
+          <label class="row">
+            <span>시작할 때 업데이트 확인</span>
+            <label class="toggle"><input id="auto-update-check" type="checkbox" checked /><span class="toggle-track"></span></label>
           </label>
           <div class="btn-row">
-            <button id="btn-check-update" class="btn btn-sm">업데이트 확인</button>
+            <button id="btn-check-update" class="btn btn-quiet btn-sm"><svg><use href="#i-sparkle"/></svg><span>업데이트 확인</span></button>
           </div>
           <p class="hint" id="update-status"></p>
-        </div>
+        </section>
       </div>
     </aside>
   </main>
@@ -275,8 +331,8 @@
       <textarea id="note-text" rows="4" placeholder="이 프레임에 대한 메모…"></textarea>
       <div class="color-row" id="note-colors"></div>
       <menu>
-        <button value="cancel" class="btn btn-ghost">취소</button>
-        <button value="save" id="note-save" class="btn btn-primary">저장</button>
+        <button value="cancel" class="btn btn-quiet">취소</button>
+        <button value="save" id="note-save" class="btn btn-accent">저장</button>
       </menu>
     </form>
   </dialog>
@@ -287,8 +343,8 @@
       <p class="meta" id="update-versions"></p>
       <div class="release-notes" id="update-notes"></div>
       <menu>
-        <button value="later" class="btn btn-ghost">나중에</button>
-        <button value="install" class="btn btn-primary">지금 설치하고 재시작</button>
+        <button value="later" class="btn btn-quiet">나중에</button>
+        <button value="install" class="btn btn-accent">지금 설치하고 재시작</button>
       </menu>
     </form>
   </dialog>
@@ -297,7 +353,7 @@
     <form method="dialog">
       <h3>단축키</h3>
       <div class="help-grid" id="help-grid"></div>
-      <menu><button value="ok" class="btn btn-primary">닫기</button></menu>
+      <menu><button value="ok" class="btn btn-accent">닫기</button></menu>
     </form>
   </dialog>
 

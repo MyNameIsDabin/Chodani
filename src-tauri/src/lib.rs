@@ -29,6 +29,18 @@ fn tool_status() -> ToolStatus {
     }
 }
 
+/// A file passed on the command line (`chodani.exe clip.mp4`, or Explorer's
+/// "Open with"). The frontend opens it once the window is ready.
+#[tauri::command]
+fn startup_file() -> Option<String> {
+    std::env::args()
+        .nth(1)
+        .filter(|a| !a.starts_with('-'))
+        .map(|a| PathBuf::from(a))
+        .filter(|p| p.is_file())
+        .map(|p| p.to_string_lossy().into_owned())
+}
+
 #[tauri::command]
 fn install_ytdlp() -> Result<String, String> {
     ytdlp::install()
@@ -154,6 +166,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             tool_status,
+            startup_file,
             install_ytdlp,
             playback_url,
             open_local,

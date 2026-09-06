@@ -168,12 +168,12 @@ function step(delta) {
 function setPlaying(on) {
   if (!loaded()) return;
   state.playing = on;
-  el.btnPlay.textContent = on ? '❚❚' : '▶';
+  el.btnPlay.classList.toggle('is-playing', on);
   if (on) {
     clearOverlays();
     el.video.play().catch((e) => {
       state.playing = false;
-      el.btnPlay.textContent = '▶';
+      el.btnPlay.classList.remove('is-playing');
       toast(`재생할 수 없습니다: ${e.message}`, true);
     });
   } else {
@@ -628,12 +628,12 @@ function renderMarkers() {
     actions.className = 'marker-actions';
     const edit = document.createElement('button');
     edit.className = 'icon-btn';
-    edit.textContent = '✎';
+    edit.innerHTML = '<svg><use href="#i-edit"/></svg>';
     edit.title = '메모 수정';
     edit.addEventListener('click', (e) => { e.stopPropagation(); openNoteDialog(m); });
     const del = document.createElement('button');
     del.className = 'icon-btn';
-    del.textContent = '✕';
+    del.innerHTML = '<svg><use href="#i-x"/></svg>';
     del.title = '삭제';
     del.addEventListener('click', (e) => { e.stopPropagation(); removeMarker(m.id); });
     actions.append(edit, del);
@@ -921,7 +921,7 @@ async function refreshRecent() {
       + `<div class="recent-sub">마커 ${entry.marker_count}개 · ${entry.kind === 'url' ? '링크' : '파일'}</div>`;
     const del = document.createElement('button');
     del.className = 'icon-btn';
-    del.textContent = '✕';
+    del.innerHTML = '<svg><use href="#i-x"/></svg>';
     del.title = '목록에서 제거';
     del.addEventListener('click', async (e) => {
       e.stopPropagation();
@@ -1329,3 +1329,4 @@ buildHelp();
 refreshTools();
 refreshRecent();
 initUpdates();
+invoke('startup_file').then((path) => { if (path) openPath(path); }).catch(() => {});

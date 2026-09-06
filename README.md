@@ -48,6 +48,9 @@ npm run tauri build    # 배포용 exe + 설치 프로그램
 
 빌드 결과: `src-tauri/target/release/chodani.exe`
 
+파일을 인자로 넘기면 바로 열립니다 (`chodani.exe clip.mp4`). 탐색기의
+"연결 프로그램"에 등록해 두면 더블클릭으로 열 수 있습니다.
+
 ## 릴리스
 
 태그를 밀면 GitHub Actions가 빌드·서명하고 Release를 만듭니다.
