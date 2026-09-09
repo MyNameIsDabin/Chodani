@@ -4,11 +4,13 @@
 //! stepping then run through the same path as a local file, so frame accuracy
 //! is identical. Nothing is written to disk unless `download` is used.
 
-use std::io::Write;
+use std::io::{BufRead, BufReader, Read, Write};
 use std::path::PathBuf;
+use std::process::Stdio;
 
 use serde::Serialize;
 use serde_json::Value;
+use tauri::{AppHandle, Emitter};
 
 use crate::proc;
 
@@ -19,6 +21,12 @@ pub struct Resolved {
     pub url: String,
     pub title: String,
     pub has_audio: bool,
+    /// The site's own id, used to name (and reuse) the download cache entry.
+    pub id: String,
+    /// Whether `url` can be handed straight to `<video>`. Only a plain http(s)
+    /// file can; a manifest (HLS, DASH) names segments the media element will
+    /// not assemble, so those have to be muxed to a file first.
+    pub direct: bool,
 }
 
 pub fn available() -> bool {
@@ -100,50 +108,114 @@ pub fn resolve(url: &str, quality: &str, max_height: u32) -> Result<Resolved, St
     let title = info
         .get("title")
         .and_then(Value::as_str)
-        .unwrap_or("YouTube")
+        .unwrap_or("영상")
         .to_string();
     let has_audio = fmt
         .get("acodec")
         .and_then(Value::as_str)
         .map(|c| c != "none")
         .unwrap_or(false);
+    let id = info
+        .get("id")
+        .and_then(Value::as_str)
+        .unwrap_or("download")
+        .to_string();
+
+    let protocol = fmt.get("protocol").and_then(Value::as_str).unwrap_or("");
+    let direct = matches!(protocol, "https" | "http")
+        && !media_url.contains(".m3u8")
+        && !media_url.contains(".mpd");
 
     Ok(Resolved {
         url: media_url,
         title,
         has_audio,
+        id,
+        direct,
     })
 }
 
-/// Download and mux to a cached MP4 — the reliable option when a stream URL
-/// expires mid-session or the site refuses ranged playback.
-pub fn download(url: &str, max_height: u32) -> Result<PathBuf, String> {
+/// Download and mux into a cached MP4.
+///
+/// Needed outright for manifest-only sites (Pinterest serves HLS and nothing
+/// else), and the reliable option elsewhere when a stream URL expires mid-
+/// session. Keyed by the site's own id so reopening the same link reuses what
+/// is already on disk instead of fetching it again.
+pub fn download(app: &AppHandle, url: &str, id: &str, max_height: u32) -> Result<PathBuf, String> {
     if !available() {
         return Err("yt-dlp가 설치되어 있지 않습니다.".into());
     }
     let dir = proc::cache_dir().join("downloads");
     std::fs::create_dir_all(&dir).map_err(|e| format!("폴더 생성 실패: {e}"))?;
-    let template = dir.join("%(id)s.%(ext)s");
+
+    let safe_id: String = id
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+        .collect();
+    let dst = dir.join(format!("{safe_id}.mp4"));
+    if dst.exists() {
+        return Ok(dst);
+    }
 
     let args: Vec<String> = vec![
         "--no-playlist".into(),
         "--no-warnings".into(),
         "-f".into(),
         format!("bv*[height<=?{max_height}]+ba/b[height<=?{max_height}]/b"),
+        // Both are needed: merge covers video+audio picks, remux covers a
+        // single non-MP4 format, and together they guarantee the .mp4 we named.
         "--merge-output-format".into(),
         "mp4".into(),
-        "--print".into(),
-        "after_move:filepath".into(),
+        "--remux-video".into(),
+        "mp4".into(),
+        "--newline".into(),
+        // A distinct prefix keeps progress apart from anything else on stdout.
+        "--progress-template".into(),
+        "download:CHODANI_PCT %(progress._percent_str)s".into(),
         "-o".into(),
-        template.to_string_lossy().into_owned(),
+        dir.join(format!("{safe_id}.%(ext)s")).to_string_lossy().into_owned(),
         url.into(),
     ];
-    let out = proc::output(&proc::tool("yt-dlp"), &args)?;
-    let path = out
-        .lines()
-        .map(str::trim)
-        .filter(|l| !l.is_empty())
-        .next_back()
-        .ok_or("다운로드된 파일 경로를 알 수 없습니다")?;
-    Ok(PathBuf::from(path))
+
+    let mut child = proc::command(&proc::tool("yt-dlp"))
+        .args(&args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("yt-dlp 실행 실패: {e}"))?;
+
+    if let Some(stdout) = child.stdout.take() {
+        for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+            let Some(rest) = line.trim().strip_prefix("CHODANI_PCT") else {
+                continue;
+            };
+            if let Ok(pct) = rest.trim().trim_end_matches('%').parse::<f64>() {
+                let _ = app.emit("download-progress", (pct / 100.0).clamp(0.0, 1.0));
+            }
+        }
+    }
+
+    let status = child.wait().map_err(|e| e.to_string())?;
+    if !status.success() {
+        let mut err = String::new();
+        if let Some(mut stderr) = child.stderr.take() {
+            let _ = stderr.read_to_string(&mut err);
+        }
+        let tail: Vec<&str> = err.lines().rev().take(5).collect();
+        return Err(format!(
+            "다운로드 실패: {}",
+            tail.into_iter().rev().collect::<Vec<_>>().join("\n")
+        ));
+    }
+
+    if dst.exists() {
+        return Ok(dst);
+    }
+    // Remuxing can still land on another extension for exotic sources.
+    std::fs::read_dir(&dir)
+        .map_err(|e| e.to_string())?
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .find(|p| p.file_stem().map(|s| s == safe_id.as_str()).unwrap_or(false))
+        .ok_or_else(|| "내려받은 파일을 찾지 못했습니다".to_string())
 }

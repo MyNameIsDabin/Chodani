@@ -58,24 +58,49 @@ fn open_local(app: AppHandle, path: String) -> Result<media::MediaInfo, String> 
 }
 
 #[tauri::command]
-fn open_stream(url: String, quality: String, max_height: u32) -> Result<media::MediaInfo, String> {
+fn open_stream(
+    app: AppHandle,
+    url: String,
+    quality: String,
+    max_height: u32,
+) -> Result<media::MediaInfo, String> {
     let resolved = ytdlp::resolve(&url, &quality, max_height)?;
+    // Sites that only publish HLS or DASH (Pinterest, for one) hand back a
+    // manifest the media element cannot play. Pulling it down is the only way
+    // to open the link at all, so do that rather than fail and make the user
+    // work out which checkbox to tick.
+    if !resolved.direct {
+        return fetch_stream(&app, &url, &resolved, max_height);
+    }
     let mut info = media::probe("url", &resolved.url, &url)?;
     info.title = resolved.title;
     info.has_audio = resolved.has_audio && info.has_audio;
     Ok(info)
 }
 
-/// Fall-back path for links whose stream URL will not play directly.
+/// Download the link and open the cached file instead of streaming it.
 #[tauri::command]
 fn download_stream(
     app: AppHandle,
     url: String,
+    quality: String,
     max_height: u32,
 ) -> Result<media::MediaInfo, String> {
-    let path = ytdlp::download(&url, max_height)?;
-    let mut info = media::prepare_local(&app, &path.to_string_lossy())?;
-    info.origin = url;
+    let resolved = ytdlp::resolve(&url, &quality, max_height)?;
+    fetch_stream(&app, &url, &resolved, max_height)
+}
+
+fn fetch_stream(
+    app: &AppHandle,
+    url: &str,
+    resolved: &ytdlp::Resolved,
+    max_height: u32,
+) -> Result<media::MediaInfo, String> {
+    let path = ytdlp::download(app, url, &resolved.id, max_height)?;
+    let mut info = media::prepare_local(app, &path.to_string_lossy())?;
+    // Keep the link as the identity so notes follow the link, not the cache file.
+    info.origin = url.to_string();
+    info.title = resolved.title.clone();
     Ok(info)
 }
 

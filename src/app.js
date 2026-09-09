@@ -940,9 +940,10 @@ async function openUrl(rawUrl) {
   const download = el.streamDownload.checked;
   busy(download ? '영상을 내려받는 중…' : '링크를 해석하는 중…', download);
   try {
+    const quality = el.streamQuality.value;
     const info = download
-      ? await invoke('download_stream', { url, maxHeight })
-      : await invoke('open_stream', { url, quality: el.streamQuality.value, maxHeight });
+      ? await invoke('download_stream', { url, quality, maxHeight })
+      : await invoke('open_stream', { url, quality, maxHeight });
     await mount(info);
     el.urlInput.value = '';
     toast(`${info.title} 열림`);
@@ -1435,6 +1436,12 @@ listen('tauri://drag-drop', (e) => {
 });
 listen('convert-progress', (e) => {
   busyText('영상을 변환하는 중…');
+  busyProgress(Number(e.payload) || 0);
+});
+// Fires when a link turns out to need downloading — either because the user
+// asked, or because the site only serves a manifest the WebView cannot play.
+listen('download-progress', (e) => {
+  busyText('영상을 내려받는 중…');
   busyProgress(Number(e.payload) || 0);
 });
 
