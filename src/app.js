@@ -1386,17 +1386,19 @@ async function installUpdate() {
       if (total > 0) busyProgress(downloaded / total);
     } else if (message.event === 'Finished') {
       busyProgress(1);
-      busyText('설치하고 재시작하는 중…');
+      busyText('설치 중… 잠시 후 앱이 다시 시작됩니다.');
     }
   };
   try {
+    // On Windows this launches the installer and exits the process outright —
+    // nothing after it runs. restartAfterInstall is what puts /R on the
+    // installer's command line; without it the app closes and never comes
+    // back, which reads as a failed update.
     await invoke('plugin:updater|download_and_install', {
       rid: availableUpdate.rid,
       onEvent: channel,
-      restartAfterInstall: false,
+      restartAfterInstall: true,
     });
-    // The installer has been staged; restarting hands over to it.
-    await invoke('plugin:process|restart');
   } catch (e) {
     busyDone();
     toast(`업데이트 실패: ${e}`, true);
@@ -1417,6 +1419,16 @@ async function initUpdates() {
     const version = await invoke('plugin:app|version');
     $('app-version').textContent = `Chodani v${version}`;
   } catch { /* not fatal */ }
+
+  // The installer only ever updates the installed copy. Offering an update to
+  // a build run straight out of target/ would install it somewhere else and
+  // leave this copy untouched — so it would keep offering the same update.
+  if (!await invoke('installed').catch(() => true)) {
+    $('auto-update-check').disabled = true;
+    $('btn-check-update').disabled = true;
+    setUpdateStatus('설치본이 아니어서 업데이트를 적용할 수 없습니다.');
+    return;
+  }
 
   const auto = localStorage.getItem(AUTO_UPDATE_KEY) !== '0';
   $('auto-update-check').checked = auto;

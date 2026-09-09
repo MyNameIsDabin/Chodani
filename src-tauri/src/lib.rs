@@ -29,6 +29,20 @@ fn tool_status() -> ToolStatus {
     }
 }
 
+/// Whether this copy was put here by the installer.
+///
+/// The NSIS bundle drops an uninstall.exe beside the binary. A build run
+/// straight out of target/, or a portable copy, has none — and updating one of
+/// those installs into the real location and leaves the running copy at its old
+/// version, so it would go on offering the same update forever.
+#[tauri::command]
+fn installed() -> bool {
+    std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|dir| dir.join("uninstall.exe").exists()))
+        .unwrap_or(false)
+}
+
 /// A file passed on the command line (`chodani.exe clip.mp4`, or Explorer's
 /// "Open with"). The frontend opens it once the window is ready.
 #[tauri::command]
@@ -187,10 +201,10 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             tool_status,
+            installed,
             startup_file,
             install_ytdlp,
             playback_url,

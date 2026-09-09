@@ -242,6 +242,8 @@ input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.15); }
 .toggle input:checked + .toggle-track { background: var(--accent); }
 .toggle input:checked + .toggle-track::after { transform: translateX(14px); background: var(--accent-fg); }
 .toggle input:focus-visible + .toggle-track { box-shadow: var(--ring); }
+.toggle input:disabled + .toggle-track { opacity: 0.35; }
+.toggle:has(input:disabled) { cursor: default; }
 
 .field {
   display: inline-flex;
