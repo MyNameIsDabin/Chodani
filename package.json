@@ -1,6 +1,6 @@
 {
   "name": "chodani",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Frame-accurate reference video player for animation & VFX",
   "scripts": {
