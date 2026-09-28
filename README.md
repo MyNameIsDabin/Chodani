@@ -49,7 +49,7 @@ Tauri(Rust + WebView2)로 만들어 실행 파일 하나로 동작합니다.
 - ffmpeg가 없으면 **시작할 때** 설치를 제안합니다. 영상이나 링크를 열려고 할 때도
   필요한 도구가 없으면 그 자리에서 물어봅니다.
 - `최근` 탭 → `도구`에서 직접 설치할 수도 있고, 현재 상태를 볼 수 있습니다.
-- 설치 위치는 `%APPDATA%\Chodaniin` 뿐입니다. PATH나 레지스트리는 건드리지
+- 설치 위치는 `%APPDATA%\Chodani\bin` 뿐입니다. PATH나 레지스트리는 건드리지
   않고, 앱을 제거하면 같이 지워집니다. 이미 시스템에 깔려 있다면 그걸 씁니다.
 
 ffmpeg는 [gyan.dev](https://www.gyan.dev/ffmpeg/builds/)의 정적 빌드를 받아
@@ -165,6 +165,6 @@ git push --follow-tags
 ```
 %APPDATA%\Chodani\projects\*.json   마커·메모·구간 (영상별 자동 저장)
 %APPDATA%\Chodani\recent.json       최근 목록
-%APPDATA%\Chodani\bin\yt-dlp.exe    앱에서 설치한 yt-dlp
+%APPDATA%\Chodani\bin\               앱에서 설치한 ffmpeg · ffprobe · yt-dlp
 %APPDATA%\Chodani\cache\            변환·다운로드 캐시
 ```
