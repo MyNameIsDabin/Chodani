@@ -56,6 +56,7 @@ const el = {
   notebar: $('notebar'), noteInline: $('note-inline'), noteColors: $('note-colors'),
   noteFrameLabel: $('note-frame-label'), noteState: $('note-state'),
   helpDialog: $('help-dialog'), helpGrid: $('help-grid'),
+  toolsDialog: $('tools-dialog'), toolsDesc: $('tools-desc'), toolsNeeded: $('tools-needed'),
 };
 
 /* ------------------------------------------------------------------ *
@@ -921,6 +922,7 @@ async function buildIndex() {
 }
 
 async function openPath(path) {
+  if (!await ensureTools(['ffmpeg'], '영상을 열려면 ffmpeg가 필요합니다.')) return;
   busy('영상을 여는 중…', true);
   try {
     const info = await invoke('open_local', { path });
@@ -936,6 +938,7 @@ async function openPath(path) {
 async function openUrl(rawUrl) {
   const url = rawUrl.trim();
   if (!url) return;
+  if (!await ensureTools(['ytdlp', 'ffmpeg'], '링크를 열려면 아래 도구가 필요합니다.')) return;
   const maxHeight = Number(el.streamHeight.value);
   const download = el.streamDownload.checked;
   busy(download ? '영상을 내려받는 중…' : '링크를 해석하는 중…', download);
@@ -948,12 +951,7 @@ async function openUrl(rawUrl) {
     el.urlInput.value = '';
     toast(`${info.title} 열림`);
   } catch (e) {
-    const message = String(e);
-    if (message.includes('yt-dlp')) {
-      toast('yt-dlp가 필요합니다. "최근" 탭에서 설치하세요.', true);
-    } else {
-      toast(message, true);
-    }
+    toast(String(e), true);
   } finally {
     busyDone();
   }
@@ -1073,8 +1071,29 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+/* ------------------------------------------------------------------ *
+ * External tools
+ *
+ * ffmpeg and yt-dlp are fetched on demand rather than bundled: together they
+ * would multiply the installer's size, and most sessions never touch yt-dlp.
+ * The cost is that a fresh machine starts out unable to open anything, so the
+ * gap has to be pointed out and fixable in one click rather than merely
+ * reported.
+ * ------------------------------------------------------------------ */
+
+const TOOLS = {
+  ffmpeg: { label: 'ffmpeg', size: '약 115MB', why: '영상 디코딩과 프레임 분석 — 영상을 열려면 필요합니다' },
+  ytdlp: { label: 'yt-dlp', size: '약 20MB', why: '유튜브 · 핀터레스트 등 링크 불러오기' },
+};
+
+/** Last known availability, so opening a file need not re-probe every time. */
+let toolState = { ffmpeg: false, ffprobe: false, ytdlp: false };
+/** Set once the startup prompt has been shown, so it does not nag on reopen. */
+let toolsPrompted = false;
+
 async function refreshTools() {
   const status = await invoke('tool_status');
+  toolState = status;
   const rows = [
     ['ffmpeg', status.ffmpeg, '영상 변환 (GIF · MKV 등)'],
     ['ffprobe', status.ffprobe, '프레임 정보 분석'],
@@ -1086,9 +1105,78 @@ async function refreshTools() {
     li.innerHTML = `<span class="dot${ok ? ' ok' : ''}"></span><b>${name}</b> — ${why}`;
     el.toolStatus.appendChild(li);
   }
+  // ffmpeg and ffprobe ship together, so one button covers both.
+  $('btn-install-ffmpeg').hidden = status.ffmpeg && status.ffprobe;
   $('btn-install-ytdlp').hidden = status.ytdlp;
   $('btn-open-cache').onclick = () => invoke('reveal', { path: status.cache_dir });
+  $('btn-open-bin').onclick = () => invoke('reveal', { path: status.bin_dir });
+  return status;
 }
+
+/** Which of the given tool keys are still missing. */
+function missingTools(needed) {
+  return needed.filter((key) => (key === 'ffmpeg'
+    ? !(toolState.ffmpeg && toolState.ffprobe)
+    : !toolState[key]));
+}
+
+async function installTools(keys) {
+  busy(`${TOOLS[keys[0]].label}를 내려받는 중…`, true);
+  try {
+    for (const key of keys) {
+      await invoke('install_tool', { name: key });
+    }
+    await refreshTools();
+    toast(`${keys.map((k) => TOOLS[k].label).join(', ')} 설치 완료`);
+    return true;
+  } catch (e) {
+    toast(String(e), true);
+    return false;
+  } finally {
+    busyDone();
+  }
+}
+
+/**
+ * Show what is missing and offer to fetch it.
+ * @returns {Promise<boolean>} whether everything needed is now present.
+ */
+function promptForTools(keys, reason) {
+  return new Promise((resolve) => {
+    el.toolsDesc.textContent = reason;
+    el.toolsNeeded.innerHTML = '';
+    for (const key of keys) {
+      const li = document.createElement('li');
+      li.className = 'tool-need';
+      li.innerHTML = `<span class="dot"></span>`
+        + `<span><b>${TOOLS[key].label}</b> <span class="meta">${TOOLS[key].size}</span>`
+        + `<span class="tool-why">${TOOLS[key].why}</span></span>`;
+      el.toolsNeeded.appendChild(li);
+    }
+    el.toolsDialog.addEventListener('close', async () => {
+      if (el.toolsDialog.returnValue !== 'install') { resolve(false); return; }
+      resolve(await installTools(keys));
+    }, { once: true });
+    el.toolsDialog.showModal();
+  });
+}
+
+/**
+ * Gate an action behind the tools it needs, offering to install them first.
+ * Returns false when the user declined, so the caller can quietly stop.
+ */
+async function ensureTools(needed, reason) {
+  let missing = missingTools(needed);
+  if (missing.length === 0) return true;
+  // The cache can be stale — the user may have installed them by hand.
+  await refreshTools();
+  missing = missingTools(needed);
+  if (missing.length === 0) return true;
+  return promptForTools(missing, reason);
+}
+
+$('btn-install-ffmpeg').addEventListener('click', () => installTools(['ffmpeg']));
+$('btn-install-ytdlp').addEventListener('click', () => installTools(['ytdlp']));
 
 /* ------------------------------------------------------------------ *
  * Wiring
@@ -1185,19 +1273,6 @@ $('btn-import').addEventListener('click', async () => {
     toast('가져오기 완료');
   } catch (e) {
     toast(String(e), true);
-  }
-});
-
-$('btn-install-ytdlp').addEventListener('click', async () => {
-  busy('yt-dlp를 내려받는 중…');
-  try {
-    await invoke('install_ytdlp');
-    toast('yt-dlp 설치 완료');
-    refreshTools();
-  } catch (e) {
-    toast(String(e), true);
-  } finally {
-    busyDone();
   }
 });
 
@@ -1456,6 +1531,13 @@ listen('download-progress', (e) => {
   busyText('영상을 내려받는 중…');
   busyProgress(Number(e.payload) || 0);
 });
+listen('tool-progress', (e) => {
+  const { label, ratio } = e.payload || {};
+  busyText(`${label} 내려받는 중…`);
+  // A server that withheld content-length leaves the bar at zero; the spinner
+  // still shows the work is live.
+  if (ratio >= 0) busyProgress(ratio);
+});
 
 function busyText(text) {
   el.busyText.textContent = text;
@@ -1479,7 +1561,11 @@ if (hasRVFC) el.video.requestVideoFrameCallback(onPresented);
 else requestAnimationFrame(pollFallback);
 
 buildHelp();
-refreshTools();
 refreshRecent();
 initUpdates();
+refreshTools().then((status) => {
+  if (toolsPrompted || (status.ffmpeg && status.ffprobe)) return;
+  toolsPrompted = true;
+  promptForTools(['ffmpeg'], '영상을 열려면 ffmpeg가 필요합니다. 지금 설치할까요?');
+});
 invoke('startup_file').then((path) => { if (path) openPath(path); }).catch(() => {});

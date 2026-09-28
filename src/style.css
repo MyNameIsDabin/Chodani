@@ -818,7 +818,13 @@ input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.15); }
 .tool-status { margin: 2px 0 6px; padding: 0; list-style: none; }
 .tool-status li { display: flex; align-items: center; gap: 8px; padding: 4px 0; color: var(--fg-2); font-size: 12px; }
 .tool-status b { color: var(--fg); font-weight: 600; font-family: var(--mono); font-size: 11.5px; }
-.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.14); }
+.dot { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.14); }
+
+/* In the dialog the name and size sit on one line with the reason beneath,
+   rather than one long run that wraps mid-sentence. */
+.tool-need { align-items: flex-start; padding: 6px 0; }
+.tool-need .dot { margin-top: 6px; }
+.tool-why { display: block; margin-top: 1px; color: var(--fg-3); font-size: 11.5px; line-height: 1.5; }
 .dot.ok { background: var(--green); box-shadow: 0 0 0 3px rgba(79, 209, 139, 0.14); }
 
 /* ------------------------------------------------------------------ *

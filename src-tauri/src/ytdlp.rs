@@ -4,7 +4,7 @@
 //! stepping then run through the same path as a local file, so frame accuracy
 //! is identical. Nothing is written to disk unless `download` is used.
 
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader, Read};
 use std::path::PathBuf;
 use std::process::Stdio;
 
@@ -13,8 +13,6 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter};
 
 use crate::proc;
-
-const RELEASE_URL: &str = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe";
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Resolved {
@@ -31,30 +29,6 @@ pub struct Resolved {
 
 pub fn available() -> bool {
     proc::tool_available("yt-dlp", "--version")
-}
-
-/// Fetch yt-dlp.exe into the app's own bin directory. Only ever called from an
-/// explicit user action — nothing downloads itself in the background.
-pub fn install() -> Result<String, String> {
-    if !cfg!(windows) {
-        return Err("자동 설치는 Windows에서만 지원됩니다. 패키지 매니저로 yt-dlp를 설치해 주세요.".into());
-    }
-    let bin = proc::app_dir().join("bin");
-    std::fs::create_dir_all(&bin).map_err(|e| format!("폴더 생성 실패: {e}"))?;
-    let dst = bin.join("yt-dlp.exe");
-
-    let resp = ureq::get(RELEASE_URL)
-        .call()
-        .map_err(|e| format!("yt-dlp 다운로드 실패: {e}"))?;
-    let mut reader = resp.into_reader();
-    let tmp = dst.with_extension("part");
-    {
-        let mut file = std::fs::File::create(&tmp).map_err(|e| format!("파일 생성 실패: {e}"))?;
-        std::io::copy(&mut reader, &mut file).map_err(|e| format!("다운로드 중 오류: {e}"))?;
-        file.flush().ok();
-    }
-    std::fs::rename(&tmp, &dst).map_err(|e| format!("설치 실패: {e}"))?;
-    Ok(dst.to_string_lossy().into_owned())
 }
 
 /// `quality` picks the trade-off the UI offers:

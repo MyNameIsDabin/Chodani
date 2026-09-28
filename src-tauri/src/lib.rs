@@ -2,6 +2,7 @@ mod media;
 mod proc;
 mod server;
 mod store;
+mod tools;
 mod ytdlp;
 
 use std::path::PathBuf;
@@ -17,6 +18,7 @@ struct ToolStatus {
     ffprobe: bool,
     ytdlp: bool,
     cache_dir: String,
+    bin_dir: String,
 }
 
 #[tauri::command]
@@ -26,6 +28,7 @@ fn tool_status() -> ToolStatus {
         ffprobe: proc::tool_available("ffprobe", "-version"),
         ytdlp: ytdlp::available(),
         cache_dir: proc::cache_dir().to_string_lossy().into_owned(),
+        bin_dir: proc::app_dir().join("bin").to_string_lossy().into_owned(),
     }
 }
 
@@ -55,9 +58,15 @@ fn startup_file() -> Option<String> {
         .map(|p| p.to_string_lossy().into_owned())
 }
 
+/// Fetch a missing dependency into the app's own bin directory. `name` is
+/// "ffmpeg" (which also brings ffprobe) or "ytdlp".
 #[tauri::command]
-fn install_ytdlp() -> Result<String, String> {
-    ytdlp::install()
+fn install_tool(app: AppHandle, name: String) -> Result<String, String> {
+    match name.as_str() {
+        "ffmpeg" => tools::install_ffmpeg(&app),
+        "ytdlp" => tools::install_ytdlp(&app),
+        other => Err(format!("알 수 없는 도구: {other}")),
+    }
 }
 
 /// URL the <video> element should load for an already-opened source.
@@ -206,7 +215,7 @@ pub fn run() {
             tool_status,
             installed,
             startup_file,
-            install_ytdlp,
+            install_tool,
             playback_url,
             open_local,
             open_stream,
